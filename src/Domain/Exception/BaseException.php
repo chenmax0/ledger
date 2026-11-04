@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Exception;
 
-class BaseException extends \Exception
+abstract class BaseException extends \Exception
 {
     public function __construct(string $message)
     {
