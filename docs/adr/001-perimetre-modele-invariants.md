@@ -71,6 +71,10 @@ Trois qualités guident les choix :
 - **Raisons** : le découvert étant autorisé, la Trésorerie n'a pas besoin de réserve. Elle descend en négatif à chaque dépôt, ce qui préserve l'invariant « la somme de tous les soldes vaut 0 ».
 - **Alternative écartée** : compte client seedé avec un gros solde (la somme des soldes serait une constante non nulle, sans bénéfice).
 - **Conséquences** : la Trésorerie est créée une seule fois (seed ou migration), jamais supprimée ; il n'existe aucune opération de suppression de compte dans le MVP. Elle est un point de contention par construction : chaque dépôt la verrouille.
+- **Amendement du 2026-11-06, identification** : la Trésorerie est un compte ordinaire, sans type ni champ dédié. Elle est désignée par un identifiant UUID v7 fixe, défini dans la configuration de l'application et inséré par une migration. Le domaine ne la distingue pas des autres comptes.
+  - **Raisons** : aucune règle métier ne la distingue (voir ci-dessus) ; `Account` reste limité à un identifiant et un solde ; la distinction vit là où elle sert, dans la configuration et le cas d'usage de dépôt.
+  - **Alternatives écartées** : un champ « type » sur le compte, avec une contrainte d'unicité partielle (une donnée de plus dans le domaine, sans règle qui l'utilise) ; « le premier compte créé » (règle implicite, dépendante de l'ordre d'exécution, introuvable de façon fiable avec des UUID v7 générés dans la même milliseconde).
+  - **Conséquences** : l'unicité est garantie par construction, puisque seule la migration utilise cet identifiant et que le générateur n'en produit jamais de fixe ; la base ne dit pas d'elle-même quel compte est la Trésorerie, il faut connaître l'identifiant.
 
 ### 4.8 Verrou pessimiste, ordre de verrouillage fixe
 
@@ -101,7 +105,7 @@ Trois qualités guident les choix :
 | La somme de tous les soldes vaut 0 | Test de concurrence |
 | La date d'un transfert est fixée par le serveur | Port horloge |
 | Un compte neuf a un solde de 0 | Domaine |
-| La Trésorerie est unique et jamais supprimée | Contrainte d'unicité partielle ; aucune suppression de compte |
+| La Trésorerie est unique et jamais supprimée | Identifiant fixe inséré par migration (amendement 4.7) ; aucune suppression de compte |
 | Une même clé d'idempotence ne produit qu'un seul transfert | Contrainte `UNIQUE`, test de concurrence |
 
 ## Conséquences globales
