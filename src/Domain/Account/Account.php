@@ -7,7 +7,7 @@ namespace App\Domain\Account;
 use App\Domain\Shared\Amount;
 use App\Domain\Shared\Balance;
 
-class Account
+final class Account
 {
     private function __construct(
         private readonly AccountId $id,
