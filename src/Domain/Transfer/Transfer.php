@@ -44,6 +44,17 @@ final readonly class Transfer
         return new self($id, $idempotencyKey, $source->getId(), $destination->getId(), $amount, $date);
     }
 
+    /**
+     * ADR 003, 3.4: a replayed request with the same idempotency key must carry
+     * the same source, destination and amount; the date is set by the server.
+     */
+    public function hasSameContentAs(AccountId $sourceId, AccountId $destinationId, Amount $amount): bool
+    {
+        return $this->sourceId->equals($sourceId)
+            && $this->destinationId->equals($destinationId)
+            && $this->amount->toInt() === $amount->toInt();
+    }
+
     public function getId(): TransferId
     {
         return $this->id;

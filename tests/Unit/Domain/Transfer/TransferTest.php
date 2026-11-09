@@ -12,6 +12,7 @@ use App\Domain\Shared\Amount;
 use App\Domain\Transfer\IdempotencyKey;
 use App\Domain\Transfer\Transfer;
 use App\Domain\Transfer\TransferId;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class TransferTest extends TestCase
@@ -19,6 +20,7 @@ final class TransferTest extends TestCase
     private const TRANSFER_ID = '01936f8e-6b2a-7c3d-9e4f-5a6b7c8d9e02';
     private const SOURCE_ID = '01936f8e-6b2a-7c3d-9e4f-5a6b7c8d9e0f';
     private const DESTINATION_ID = '01936f8e-6b2a-7c3d-9e4f-5a6b7c8d9e01';
+    private const OTHER_ACCOUNT_ID = '01936f8e-6b2a-7c3d-9e4f-5a6b7c8d9e03';
     private const IDEMPOTENCY_KEY = '550e8400-e29b-41d4-a716-446655440000';
     private const DATE = '2026-11-08 10:00:00';
 
@@ -93,6 +95,50 @@ final class TransferTest extends TestCase
             $this->assertSame(500, $source->getBalance()->toInt());
             $this->assertSame(PHP_INT_MAX, $destination->getBalance()->toInt());
         }
+    }
+
+    public function testSameSourceDestinationAndAmountIsSameContent(): void
+    {
+        $transfer = $this->execute(
+            $this->accountWithBalance(self::SOURCE_ID, 500),
+            $this->accountWithBalance(self::DESTINATION_ID, 50),
+            200,
+        );
+
+        $this->assertTrue($transfer->hasSameContentAs(
+            AccountId::fromString(self::SOURCE_ID),
+            AccountId::fromString(self::DESTINATION_ID),
+            Amount::fromInt(200),
+        ));
+    }
+
+    #[DataProvider('differentContents')]
+    public function testAnyDifferenceIsDifferentContent(string $sourceId, string $destinationId, int $cents): void
+    {
+        $transfer = $this->execute(
+            $this->accountWithBalance(self::SOURCE_ID, 500),
+            $this->accountWithBalance(self::DESTINATION_ID, 50),
+            200,
+        );
+
+        $this->assertFalse($transfer->hasSameContentAs(
+            AccountId::fromString($sourceId),
+            AccountId::fromString($destinationId),
+            Amount::fromInt($cents),
+        ));
+    }
+
+    /**
+     * @return array<string, array{string, string, int}>
+     */
+    public static function differentContents(): array
+    {
+        return [
+            'different source' => [self::OTHER_ACCOUNT_ID, self::DESTINATION_ID, 200],
+            'different destination' => [self::SOURCE_ID, self::OTHER_ACCOUNT_ID, 200],
+            'different amount' => [self::SOURCE_ID, self::DESTINATION_ID, 201],
+            'source and destination swapped' => [self::DESTINATION_ID, self::SOURCE_ID, 200],
+        ];
     }
 
     private function execute(Account $source, Account $destination, int $cents): Transfer
